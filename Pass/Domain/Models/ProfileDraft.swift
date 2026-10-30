@@ -66,6 +66,23 @@ struct ProfileDraft: Equatable {
         }
     }
 
+    /// Read-only view of a saved connection, so it renders with the same card renderer.
+    init(connection: Connection) {
+        fullName = connection.fullName
+        designation = connection.designation
+        bio = connection.bio
+        email = connection.email
+        phone = connection.phone
+        website = connection.website
+        photoData = connection.photoData
+        socialLinks = connection.orderedSocialLinks.map {
+            SocialLinkDraft(id: $0.id, platform: $0.platform, value: $0.value)
+        }
+        projects = connection.orderedProjects.map {
+            ProjectDraft(id: $0.id, title: $0.title, summary: $0.summary, link: $0.link)
+        }
+    }
+
     /// Social links and projects left completely blank are ignored rather than flagged.
     func validationErrors() -> [Field: FieldValidationError] {
         var errors: [Field: FieldValidationError] = [:]

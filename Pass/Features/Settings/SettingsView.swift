@@ -3,8 +3,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var connections: [Connection]
     @State private var isConfirmingDeletion = false
-    @State private var deletionError: String?
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -17,6 +18,22 @@ struct SettingsView: View {
                     Text("Data")
                 } footer: {
                     Text("Removes your cards and saved connections from this iPhone. Any public profile you publish must be unpublished separately.")
+                }
+
+                Section {
+                    if connections.contains(where: { $0.isSample }) {
+                        Button("Remove sample contacts", role: .destructive) {
+                            perform { try ConnectionRepository(context: modelContext).removeSamples() }
+                        }
+                    } else {
+                        Button("Add sample contacts") {
+                            perform { try ConnectionRepository(context: modelContext).loadSamples() }
+                        }
+                    }
+                } header: {
+                    Text("Showcase")
+                } footer: {
+                    Text("Fictional contacts for demos, marked “Sample”. They never mix with your real connections.")
                 }
 
                 Section("About") {
@@ -37,21 +54,25 @@ struct SettingsView: View {
                 Text("This can't be undone.")
             }
             .alert(
-                "Couldn't delete data",
-                isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })
+                "Something went wrong",
+                isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
             ) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(deletionError ?? "")
+                Text(errorMessage ?? "")
             }
         }
     }
 
     private func deleteAllLocalData() {
+        perform { try ProfileRepository(context: modelContext).deleteAllLocalData() }
+    }
+
+    private func perform(_ action: () throws -> Void) {
         do {
-            try ProfileRepository(context: modelContext).deleteAllLocalData()
+            try action()
         } catch {
-            deletionError = "Your data is unchanged. Please try again."
+            errorMessage = "Your data is unchanged. Please try again."
         }
     }
 }
